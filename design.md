@@ -989,3 +989,333 @@ interface GestureConfig {
 - 友好的键盘操作
 
 这个设计既保持了原有的月光美学风格，又在实用性和性能上做了优化，为用户提供更好的使用体验。需要我对某个具体部分做更详细的解释吗？ 
+
+## 月历组件设计规范 (Moon Calendar Component Design)
+
+### 设计理念更新
+
+基于用户反馈和实际使用体验，月历组件采用了**轻量化浅色主题**，与首页保持视觉一致性，同时保留月光美学的核心元素。
+
+### 1. 组件结构
+
+#### 主容器
+```css
+.moon-calendar {
+  @apply p-4;
+  /* 简洁的容器，无额外背景 */
+}
+
+/* 日历头部 */
+.calendar-header {
+  @apply flex;
+  @apply items-center;
+  @apply justify-between;
+  @apply mb-4;
+}
+
+.month-title {
+  @apply text-xl;
+  @apply font-light;
+  /* 保持轻量字体风格 */
+}
+
+/* 导航按钮 */
+.nav-button {
+  @apply h-8;
+  @apply w-8;
+  @apply border;
+  @apply border-gray-200;
+  @apply hover:bg-gray-50;
+}
+```
+
+#### 星期标题
+```css
+.weekday-headers {
+  @apply grid;
+  @apply grid-cols-7;
+  @apply mb-2;
+}
+
+.weekday-header {
+  @apply text-center;
+  @apply text-sm;
+  @apply text-gray-500;
+  @apply py-2;
+}
+```
+
+### 2. 日历网格系统
+
+#### 网格布局
+```css
+.calendar-grid {
+  @apply grid;
+  @apply grid-cols-7;
+  @apply gap-1;
+  /* 使用 gap-1 而非 gap-px 提供更清晰的分隔 */
+}
+```
+
+#### 日期单元格
+```css
+.date-cell {
+  @apply min-h-[120px];
+  @apply h-full;
+  @apply p-3;
+  @apply border;
+  @apply border-gray-200;
+  @apply bg-white/60;
+  @apply shadow-sm;
+  @apply transition-all;
+  @apply duration-200;
+}
+
+/* 悬停状态 */
+.date-cell:hover {
+  @apply bg-white/80;
+  @apply shadow-md;
+}
+
+/* 今日标记 */
+.date-cell.today {
+  @apply ring-2;
+  @apply ring-blue-200;
+  @apply ring-offset-2;
+}
+
+/* 非当月日期 */
+.date-cell.other-month {
+  @apply opacity-50;
+  @apply bg-gray-50/30;
+}
+```
+
+### 3. 日期内容布局
+
+#### 日期信息区域
+```css
+.date-info {
+  @apply flex;
+  @apply items-start;
+  @apply justify-between;
+  @apply mb-2;
+}
+
+.date-number {
+  @apply text-base;
+  @apply font-normal;
+}
+
+.date-number.other-month {
+  @apply text-gray-400;
+}
+
+.lunar-date {
+  @apply text-xs;
+  @apply text-gray-500;
+}
+
+/* 月相显示 */
+.moon-phase-emoji {
+  @apply text-lg;
+  @apply cursor-help;
+  /* 显示真实月相emoji，带有提示信息 */
+}
+```
+
+### 4. 项目和塔罗记录样式
+
+#### 项目记录
+```css
+.project-record {
+  @apply text-xs;
+  @apply px-2;
+  @apply py-1;
+  @apply bg-blue-50;
+  @apply text-blue-700;
+  @apply rounded-sm;
+  @apply truncate;
+  @apply shadow-sm;
+  @apply cursor-pointer;
+  @apply transition-colors;
+  @apply duration-200;
+}
+
+.project-record:hover {
+  @apply bg-blue-100;
+}
+
+.project-record::before {
+  content: "⭐ ";
+  /* 项目图标前缀 */
+}
+```
+
+#### 塔罗记录
+```css
+.tarot-record {
+  @apply text-xs;
+  @apply px-2;
+  @apply py-1;
+  @apply bg-purple-50;
+  @apply text-purple-700;
+  @apply rounded-sm;
+  @apply truncate;
+  @apply shadow-sm;
+  @apply cursor-pointer;
+  @apply transition-colors;
+  @apply duration-200;
+}
+
+.tarot-record:hover {
+  @apply bg-purple-100;
+}
+
+.tarot-record::before {
+  content: "🎴 ";
+  /* 塔罗图标前缀 */
+}
+```
+
+#### 记录容器
+```css
+.records-container {
+  @apply space-y-1;
+  @apply mt-2;
+  /* 项目和塔罗记录的统一容器 */
+}
+```
+
+### 5. 颜色系统扩展
+
+#### 浅色主题配色
+```css
+:root {
+  /* 日历专用颜色 */
+  --calendar-bg: rgb(255 255 255 / 0.6);
+  --calendar-bg-hover: rgb(255 255 255 / 0.8);
+  --calendar-border: rgb(229 231 235); /* gray-200 */
+  --calendar-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --calendar-shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  
+  /* 今日标记 */
+  --today-ring: rgb(191 219 254); /* blue-200 */
+  
+  /* 项目记录色彩 */
+  --project-bg: rgb(239 246 255); /* blue-50 */
+  --project-bg-hover: rgb(219 234 254); /* blue-100 */
+  --project-text: rgb(29 78 216); /* blue-700 */
+  
+  /* 塔罗记录色彩 */
+  --tarot-bg: rgb(250 245 255); /* purple-50 */
+  --tarot-bg-hover: rgb(243 232 255); /* purple-100 */
+  --tarot-text: rgb(126 34 206); /* purple-700 */
+}
+```
+
+### 6. 交互规范
+
+#### 悬停反馈
+- 日期单元格悬停时背景透明度增加，阴影加深
+- 项目和塔罗记录悬停时背景色加深
+- 所有交互元素使用 200ms 过渡时间
+
+#### 焦点状态
+- 今日日期使用蓝色环形标记
+- 导航按钮使用标准的 outline 样式
+- 记录项目支持键盘导航
+
+#### 视觉层次
+```css
+/* 信息优先级 */
+.priority-high {
+  /* 日期数字 - 最高优先级 */
+  @apply text-base;
+  @apply font-normal;
+}
+
+.priority-medium {
+  /* 月相emoji - 中等优先级 */
+  @apply text-lg;
+  @apply opacity-90;
+}
+
+.priority-low {
+  /* 农历信息 - 较低优先级 */
+  @apply text-xs;
+  @apply text-gray-500;
+}
+
+.priority-content {
+  /* 项目和塔罗记录 - 内容优先级 */
+  @apply text-xs;
+  @apply font-normal;
+}
+```
+
+### 7. 响应式适配
+
+#### 移动端优化
+```css
+@media (max-width: 640px) {
+  .date-cell {
+    @apply min-h-[100px];
+    @apply p-2;
+  }
+  
+  .project-record,
+  .tarot-record {
+    @apply text-xs;
+    @apply px-1.5;
+    @apply py-0.5;
+  }
+}
+```
+
+#### 平板和桌面
+```css
+@media (min-width: 641px) {
+  .date-cell {
+    @apply min-h-[120px];
+    @apply p-3;
+  }
+  
+  .moon-phase-emoji {
+    @apply text-xl;
+  }
+}
+```
+
+### 8. 与设计系统的集成
+
+#### 继承的设计原则
+- **简约优雅**: 使用浅色背景和微妙阴影
+- **自然流畅**: 200ms 过渡动画
+- **情感共鸣**: 保留月相emoji的灵性元素
+- **可访问性**: 清晰的对比度和视觉层次
+
+#### 设计系统兼容性
+- 使用标准的 Tailwind CSS 类名
+- 遵循现有的间距系统 (space-1, space-2, etc.)
+- 保持与按钮和表单组件的视觉一致性
+- 支持现有的主题切换机制
+
+### 9. 实现细节
+
+#### 月相数据集成
+- 使用 `moonPhaseService` 提供的真实月相数据
+- 显示准确的月相emoji和光照百分比
+- 支持月相信息的工具提示
+
+#### 项目和记录关联
+- 基于日期过滤显示相关项目
+- 支持项目和塔罗记录的点击交互
+- 提供完整的标题信息在悬停提示中
+
+#### 性能优化
+- 使用 `gap-1` 而非复杂的边框系统
+- 最小化重绘和重排
+- 支持虚拟滚动（未来扩展）
+
+这个更新的设计规范既保持了原有月光美学的核心理念，又适应了实际使用中的浅色主题需求，为用户提供了更清晰、更实用的日历体验。 

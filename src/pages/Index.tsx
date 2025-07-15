@@ -9,12 +9,26 @@ import { Plus, Calendar, Sparkles } from 'lucide-react';
 import { ProjectModal } from '@/components/ProjectModal';
 import { TarotModal } from '@/components/TarotModal';
 import { useMoonPhase } from '@/hooks/useMoonPhase';
+import { TarotRecord } from '@/lib/types';
 import { useState } from 'react';
 
 const Index: React.FC = () => {
   const { currentPhase } = useMoonPhase();
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [tarotModalOpen, setTarotModalOpen] = useState(false);
+  const [editingTarotRecord, setEditingTarotRecord] = useState<TarotRecord | null>(null);
+
+  const handleEditTarotRecord = (record: TarotRecord) => {
+    setEditingTarotRecord(record);
+    setTarotModalOpen(true);
+  };
+
+  const handleTarotModalClose = (open: boolean) => {
+    setTarotModalOpen(open);
+    if (!open) {
+      setEditingTarotRecord(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white/90">
@@ -66,7 +80,7 @@ const Index: React.FC = () => {
                 <Sparkles className="h-5 w-5" />
                 塔罗记录
               </h2>
-              <TarotRecordPreview />
+              <TarotRecordPreview onEditRecord={handleEditTarotRecord} />
             </div>
           </div>
         </div>
@@ -79,8 +93,9 @@ const Index: React.FC = () => {
         />
         <TarotModal 
           open={tarotModalOpen} 
-          onOpenChange={setTarotModalOpen}
+          onOpenChange={handleTarotModalClose}
           currentPhase={currentPhase}
+          editRecord={editingTarotRecord}
         />
       </div>
     </div>

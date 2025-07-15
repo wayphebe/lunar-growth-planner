@@ -1,15 +1,6 @@
 
 import { useState, useEffect } from 'react';
-
-interface TarotRecord {
-  id: string;
-  date: Date;
-  moonPhase: string;
-  question: string;
-  cards: string[];
-  interpretation: string;
-  projectId?: string;
-}
+import { TarotRecord } from '@/lib/types';
 
 export const useTarotRecords = () => {
   const [tarotRecords, setTarotRecords] = useState<TarotRecord[]>([]);

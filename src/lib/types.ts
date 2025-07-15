@@ -8,6 +8,17 @@ export interface MoonPhase {
   nextDate?: Date;
 }
 
+// 塔罗记录相关类型定义
+export interface TarotRecord {
+  id: string;
+  date: Date;
+  moonPhase: string;
+  question: string;
+  cards: string[];
+  interpretation: string;
+  projectId?: string;
+}
+
 // 月相日历数据结构
 export interface MoonCalendarDay {
   date: Date;
