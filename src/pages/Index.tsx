@@ -5,17 +5,21 @@ import { ProjectOverview } from '@/components/ProjectOverview';
 import { TarotRecordPreview } from '@/components/TarotRecordPreview';
 import { MoonCalendar } from '@/components/MoonCalendar';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, Sparkles } from 'lucide-react';
+import { Plus, Calendar, Sparkles, Users, Star } from 'lucide-react';
 import { ProjectModal } from '@/components/ProjectModal';
 import { TarotModal } from '@/components/TarotModal';
+import { ProfessionalTarotModal } from '@/components/professional/ProfessionalTarotModal';
 import { useMoonPhase } from '@/hooks/useMoonPhase';
 import { TarotRecord } from '@/lib/types';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Index: React.FC = () => {
   const { currentPhase } = useMoonPhase();
+  const navigate = useNavigate();
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [tarotModalOpen, setTarotModalOpen] = useState(false);
+  const [professionalTarotModalOpen, setProfessionalTarotModalOpen] = useState(false);
   const [editingTarotRecord, setEditingTarotRecord] = useState<TarotRecord | null>(null);
 
   const handleEditTarotRecord = (record: TarotRecord) => {
@@ -55,6 +59,22 @@ const Index: React.FC = () => {
           >
             <Sparkles className="h-4 w-4 mr-2" />
             塔罗记录
+          </Button>
+          <Button 
+            variant="outline" 
+            className="border-gray-200 hover:bg-gray-50"
+            onClick={() => setProfessionalTarotModalOpen(true)}
+          >
+            <Star className="h-4 w-4 mr-2" />
+            专业咨询
+          </Button>
+          <Button 
+            variant="outline" 
+            className="border-gray-200 hover:bg-gray-50"
+            onClick={() => navigate('/clients')}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            客户管理
           </Button>
         </div>
 
@@ -96,6 +116,11 @@ const Index: React.FC = () => {
           onOpenChange={handleTarotModalClose}
           currentPhase={currentPhase}
           editRecord={editingTarotRecord}
+        />
+        <ProfessionalTarotModal 
+          open={professionalTarotModalOpen} 
+          onOpenChange={setProfessionalTarotModalOpen}
+          currentPhase={currentPhase}
         />
       </div>
     </div>

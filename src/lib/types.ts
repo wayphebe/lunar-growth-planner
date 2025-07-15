@@ -63,4 +63,87 @@ export interface MoonPhaseAnalytics {
   }[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// 客户端相关类型定义
+
+// 客户档案
+export interface ClientProfile {
+  id: string;
+  name: string;
+  avatar?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  createdAt: Date;
+  lastConsultation?: Date;
+  totalConsultations: number;
+  isActive: boolean;
+}
+
+// 专业塔罗记录
+export interface ProfessionalTarotRecord extends TarotRecord {
+  clientId: string;
+  isForClient: boolean;
+  consultationFee?: number;
+  shareSettings: {
+    isPublic: boolean;
+    allowDownload: boolean;
+    expiryDate?: Date;
+    password?: string;
+  };
+  presentation: {
+    theme: 'classic' | 'modern' | 'mystical';
+    includeAdvice: boolean;
+    includeNextSteps: boolean;
+  };
+  advice?: string;
+  nextSteps?: string;
+}
+
+// 分享链接
+export interface ShareLink {
+  id: string;
+  tarotRecordId: string;
+  clientId: string;
+  url: string;
+  accessCode: string;
+  views: number;
+  lastViewed?: Date;
+  isActive: boolean;
+  expiresAt?: Date;
+  createdAt: Date;
+}
+
+// 业务信息
+export interface BusinessInfo {
+  name: string;
+  description?: string;
+  website?: string;
+  contact?: string;
+  logo?: string;
+}
+
+// 分享设置
+export interface ShareSettings {
+  isPublic: boolean;
+  allowDownload: boolean;
+  expiryDate?: Date;
+  password?: string;
+  theme: 'classic' | 'modern' | 'mystical';
+  includeAdvice: boolean;
+  includeNextSteps: boolean;
+}
+
+// 本地存储数据扩展
+export interface LocalStorageData {
+  tarotRecords: TarotRecord[];
+  professionalTarotRecords: ProfessionalTarotRecord[];
+  clients: ClientProfile[];
+  shareLinks: ShareLink[];
+  settings: {
+    consultantName: string;
+    defaultTheme: string;
+    businessInfo: BusinessInfo;
+  };
 } 
