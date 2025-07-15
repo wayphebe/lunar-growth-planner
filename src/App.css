@@ -1,42 +1,173 @@
+/* 全局样式 */
 #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+/* 主容器样式 */
+.home-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 顶部导航样式 */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.nav-content {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* 主要内容区样式 */
+.main-content {
+  flex: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-@keyframes logo-spin {
+/* 卡片基础样式 */
+.card {
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem;
+}
+
+/* 月相信息条样式 */
+.moon-phase-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.moon-phase-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* 操作栏样式 */
+.action-bar {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.primary-action:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.secondary-action:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* 下拉面板样式 */
+.details-panel {
+  margin-top: auto;
+  background: white;
+  border-radius: 1rem 1rem 0 0;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.drag-handle {
+  width: 2rem;
+  height: 0.25rem;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  margin: 0.75rem auto;
+}
+
+.panel-content {
+  padding: 0 1.25rem 1.25rem;
+}
+
+.panel-section-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .action-bar {
+    flex-direction: column;
+  }
+
+  .moon-phase-display {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .moon-phase-display .h-8.w-px {
+    display: none;
+  }
+}
+
+@keyframes fadeIn {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+.main-content > * {
+  animation: fadeIn 0.3s ease-out forwards;
 }

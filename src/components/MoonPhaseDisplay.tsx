@@ -1,9 +1,13 @@
 
 import React from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Info } from 'lucide-react';
 import { useMoonPhase } from '@/hooks/useMoonPhase';
+import { Button } from './ui/button';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "./ui/hover-card";
 
 export const MoonPhaseDisplay: React.FC = () => {
   const { currentPhase, nextSignificantPhase } = useMoonPhase();
@@ -12,57 +16,87 @@ export const MoonPhaseDisplay: React.FC = () => {
     return null;
   }
 
+  const getMoonPhaseAdvice = (phaseName: string) => {
+    switch (phaseName) {
+      case '新月':
+        return '新月是开始新项目和设定新目标的理想时机。这是一个充满可能性的时刻。';
+      case '上弦月':
+        return '上弦月是行动和突破的时刻。适合克服障碍，推进项目。';
+      case '满月':
+        return '满月是收获和庆祝的时刻。适合回顾进展，完成项目，进行反思。';
+      case '下弦月':
+        return '下弦月是释放和净化的时刻。适合放下不再需要的事物，为新的周期做准备。';
+      default:
+        return '关注月相变化，调整你的节奏。';
+    }
+  };
+
   return (
-    <Card className="p-6 bg-card/80 backdrop-blur-sm border-border/30">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-light tracking-wide text-foreground/90">
-            当前月相
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Current Phase */}
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full bg-foreground/10 backdrop-blur-sm flex items-center justify-center">
+            <span className="text-3xl filter drop-shadow-lg">{currentPhase.emoji}</span>
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-foreground/5 backdrop-blur-sm flex items-center justify-center">
+            <Moon className="w-4 h-4 text-foreground/70" />
+          </div>
+        </div>
+        
+        <div className="space-y-1">
+          <h2 className="text-xl font-light tracking-wide">
+            {currentPhase.name}
           </h2>
-          <p className="text-foreground/70 text-sm mt-1">
-            跟随月亮的节律，规划你的项目
-          </p>
-        </div>
-        <Button variant="outline" size="icon">
-          <Sparkles className="h-5 w-5" />
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* 当前月相 */}
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-4xl">{currentPhase.emoji}</span>
-            <div>
-              <h3 className="text-xl font-medium">{currentPhase.name}</h3>
-              <p className="text-sm text-foreground/70">
-                月相能量: {Math.round(currentPhase.illumination)}%
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-foreground/70 mt-2">
-            {currentPhase.name === '新月' && "新月是播种新想法的完美时机。"}
-            {currentPhase.name === '满月' && "满月是收获与反思的时刻。"}
-            {currentPhase.name === '上弦月' && "上弦月时要保持行动力。"}
-            {currentPhase.name === '下弦月' && "下弦月是释放和清理的时期。"}
-          </p>
-        </div>
-
-        {/* 下一个重要月相 */}
-        <div>
-          <h3 className="text-lg font-medium mb-2">下一个重要月相</h3>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{nextSignificantPhase.emoji}</span>
-            <div>
-              <p className="font-medium">{nextSignificantPhase.name}</p>
-              <p className="text-sm text-foreground/70">
-                {nextSignificantPhase.nextDate &&
-                  `将在 ${nextSignificantPhase.nextDate.toLocaleDateString()} 到来`}
-              </p>
-            </div>
+          <div className="flex items-center gap-2 text-sm text-foreground/70">
+            <span>月相能量: {Math.round(currentPhase.illumination * 100)}%</span>
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <Button variant="ghost" size="icon" className="w-6 h-6">
+                  <Info className="w-4 h-4" />
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent 
+                className="w-80 bg-background/95 backdrop-blur-xl border-border/20"
+              >
+                <p className="text-sm text-foreground/70">
+                  {getMoonPhaseAdvice(currentPhase.name)}
+                </p>
+              </HoverCardContent>
+            </HoverCard>
           </div>
         </div>
       </div>
-    </Card>
+
+      {/* Next Significant Phase */}
+      <div className="flex items-center gap-4 bg-foreground/5 backdrop-blur-sm rounded-lg p-3">
+        <div className="space-y-1">
+          <div className="text-sm text-foreground/70">下一个重要月相</div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{nextSignificantPhase.emoji}</span>
+            <span className="font-light">{nextSignificantPhase.name}</span>
+            <span className="text-sm text-foreground/50">
+              {nextSignificantPhase.nextDate?.toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="hover:bg-foreground/10"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="hover:bg-foreground/10"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };

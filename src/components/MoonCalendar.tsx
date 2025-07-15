@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
-import { format, addMonths, subMonths } from 'date-fns';
+import { format, addMonths, subMonths, isToday, isSameMonth, isSameDay } from 'date-fns';
 import { useMoonCalendar } from '@/hooks/useMoonCalendar';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  Loader2
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useProjects } from '@/hooks/useProjects';
+import { useTarotRecords } from '@/hooks/useTarotRecords';
+import { cn } from '@/lib/utils';
+import type { MoonCalendarDay } from '@/lib/types';
 
 export const MoonCalendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { calendarData, loading, error } = useMoonCalendar(
+  const { calendarData, loading } = useMoonCalendar(
     currentDate.getFullYear(),
     currentDate.getMonth()
   );
+  const { projects } = useProjects();
+  const { tarotRecords } = useTarotRecords();
 
   const handlePreviousMonth = () => {
     setCurrentDate(prev => subMonths(prev, 1));
@@ -27,109 +25,127 @@ export const MoonCalendar: React.FC = () => {
     setCurrentDate(prev => addMonths(prev, 1));
   };
 
-  if (error) {
+  const getMoonPhaseEmoji = (phase: string) => {
+    switch (phase) {
+      case '新月': return '🌑';
+      case '上弦月': return '🌓';
+      case '满月': return '🌕';
+      case '下弦月': return '🌗';
+      default: return '🌙';
+    }
+  };
+
+  const renderDay = (day: MoonCalendarDay) => {
+    const dayProjects = projects.filter(p => 
+      isSameDay(new Date(p.startDate), day.date)
+    );
+    const dayTarotRecords = tarotRecords.filter(r => 
+      isSameDay(new Date(r.date), day.date)
+    );
+
     return (
-      <div className="text-center text-red-500 p-4">
-        发生错误: {error}
+      <div 
+        className={cn(
+          "min-h-[120px] h-full p-3 border border-gray-200",
+          "bg-white/60 shadow-sm",
+          isToday(day.date) && "ring-2 ring-blue-200 ring-offset-2",
+          !isSameMonth(day.date, currentDate) && "opacity-50 bg-gray-50/30",
+          "hover:bg-white/80 hover:shadow-md transition-all duration-200"
+        )}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex flex-col">
+            <span className={cn(
+              "text-base",
+              !isSameMonth(day.date, currentDate) && "text-gray-400"
+            )}>
+              {format(day.date, 'dd')}
+            </span>
+            <span className="text-xs text-gray-500">
+              农历{format(day.date, 'MM.dd')}
+            </span>
+          </div>
+          <span className="text-lg" title={`${day.moonPhase.name} (${Math.round(day.moonPhase.illumination * 100)}%)`}>
+            {day.moonPhase.emoji}
+          </span>
+        </div>
+
+        <div className="space-y-1 mt-2">
+          {dayProjects.map(project => (
+            <div
+              key={project.id}
+              className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-sm truncate hover:bg-blue-100 transition-colors cursor-pointer shadow-sm"
+              title={project.title}
+            >
+              ⭐ {project.title}
+            </div>
+          ))}
+          {dayTarotRecords.map(record => (
+            <div
+              key={record.id}
+              className="text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded-sm truncate hover:bg-purple-100 transition-colors cursor-pointer shadow-sm"
+              title={record.question}
+            >
+              🎴 {record.question}
+            </div>
+          ))}
+        </div>
       </div>
     );
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">加载中...</div>;
+  }
+
+  if (!calendarData?.days) {
+    return <div className="text-center py-8">暂无数据</div>;
   }
 
   return (
-    <Card className="p-4">
-      {/* 日历头部 */}
+    <div className="p-4">
+      {/* Calendar Header */}
       <div className="flex items-center justify-between mb-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handlePreviousMonth}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+        <h2 className="text-xl font-light">
+          {format(currentDate, 'yyyy年MM月')}
+        </h2>
         <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">
-            {format(currentDate, 'yyyy年MM月')}
-          </h2>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handlePreviousMonth}
+            className="h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleNextMonth}
+            className="h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleNextMonth}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
       </div>
 
-      {/* 星期标题 */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      {/* Weekday Headers */}
+      <div className="grid grid-cols-7 mb-2">
         {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-          <div
-            key={day}
-            className="text-center text-sm font-medium text-gray-500 p-2"
-          >
+          <div key={day} className="text-center text-sm text-gray-500 py-2">
             {day}
           </div>
         ))}
       </div>
 
-      {/* 日历格子 */}
-      {loading ? (
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: 35 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className="aspect-square rounded-lg"
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-7 gap-1">
-          {calendarData?.days.map((day, index) => (
-            <div
-              key={index}
-              className={`
-                p-2 border rounded-lg min-h-[100px]
-                ${day.date.toDateString() === new Date().toDateString()
-                  ? 'border-primary'
-                  : 'border-border'
-                }
-              `}
-            >
-              <div className="flex flex-col h-full">
-                {/* 日期和月相 */}
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm">
-                    {format(day.date, 'd')}
-                  </span>
-                  <span title={day.moonPhase.name}>
-                    {day.moonPhase.emoji}
-                  </span>
-                </div>
-
-                {/* 月相百分比 */}
-                <div className="text-xs text-gray-500 mb-2">
-                  {Math.round(day.moonPhase.illumination)}%
-                </div>
-
-                {/* 项目和塔罗标记 */}
-                <div className="flex flex-wrap gap-1">
-                  {day.projects.length > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {day.projects.length} 个项目
-                    </Badge>
-                  )}
-                  {day.tarotRecords.length > 0 && (
-                    <Badge variant="outline" className="text-xs">
-                      {day.tarotRecords.length} 个塔罗
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {calendarData.days.map((day, index) => (
+          <div key={index}>
+            {renderDay(day)}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }; 

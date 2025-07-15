@@ -298,3 +298,694 @@ gap-6                     /* 1.5rem 网格间距 */
 - 保持足够的对比度
 - 提供清晰的视觉反馈
 - 支持键盘导航和屏幕阅读 
+
+## 日历视图迭代设计 (Calendar View Iteration)
+
+### 1. 首页核心布局
+
+#### 月历主视图
+```css
+/* 页面容器 */
+.page-container {
+  @apply min-h-screen;
+  @apply bg-gradient-to-b;
+  @apply from-background/30;
+  @apply to-background/10;
+  @apply backdrop-blur-sm;
+}
+
+/* 月历容器 */
+.calendar-container {
+  @apply max-w-7xl;
+  @apply mx-auto;
+  @apply px-4;
+  @apply py-6;
+  @apply space-y-6;
+}
+
+/* 月历网格 */
+.calendar-grid {
+  @apply grid;
+  @apply grid-cols-7;
+  @apply gap-1;
+  @apply bg-background/30;
+  @apply backdrop-blur-md;
+  @apply p-4;
+  @apply rounded-lg;
+  @apply border;
+  @apply border-border/10;
+  @apply shadow-xl;
+}
+
+/* 日期格子 */
+.date-cell {
+  @apply relative;
+  @apply min-h-[120px];
+  @apply p-2;
+  @apply border;
+  @apply border-border/10;
+  @apply rounded-md;
+  @apply transition-all;
+  @apply duration-300;
+  @apply bg-background/20;
+  @apply backdrop-blur-sm;
+  @apply hover:bg-background/30;
+  @apply hover:border-border/20;
+}
+
+/* 日期数字 */
+.date-number {
+  @apply font-light;
+  @apply text-xl;
+  @apply text-foreground/90;
+}
+
+/* 农历日期 */
+.lunar-date {
+  @apply text-xs;
+  @apply text-foreground/60;
+}
+
+/* 月相图标 */
+.moon-phase-icon {
+  @apply absolute;
+  @apply top-2;
+  @apply right-2;
+  @apply w-4;
+  @apply h-4;
+  @apply opacity-80;
+}
+
+/* 今日标记 */
+.today-cell {
+  @apply ring-2;
+  @apply ring-primary/30;
+  @apply ring-offset-2;
+  @apply ring-offset-background/10;
+}
+
+/* 非当月日期 */
+.other-month {
+  @apply opacity-50;
+}
+```
+
+#### 项目卡片样式
+```css
+/* 项目卡片容器 */
+.project-card {
+  @apply flex;
+  @apply items-center;
+  @apply my-1;
+  @apply px-2;
+  @apply py-1;
+  @apply rounded-sm;
+  @apply text-sm;
+  @apply truncate;
+  @apply backdrop-blur-sm;
+  @apply transition-all;
+  @apply duration-200;
+  @apply hover:translate-x-0.5;
+}
+
+/* 项目状态样式 */
+.project-status {
+  &-active {
+    @apply bg-foreground/40;
+    @apply hover:bg-foreground/50;
+  }
+  &-completed {
+    @apply bg-foreground/20;
+    @apply hover:bg-foreground/30;
+  }
+  &-upcoming {
+    @apply bg-foreground/10;
+    @apply hover:bg-foreground/20;
+  }
+}
+
+/* 项目标记 */
+.project-marker {
+  @apply w-1;
+  @apply h-full;
+  @apply rounded-full;
+  @apply mr-2;
+  @apply opacity-80;
+}
+```
+
+#### 月相节点样式
+```css
+/* 新月样式 */
+.new-moon-cell {
+  @apply ring-1;
+  @apply ring-primary/40;
+  @apply ring-offset-1;
+  @apply ring-offset-background/10;
+}
+
+/* 满月样式 */
+.full-moon-cell {
+  @apply bg-background/40;
+  @apply backdrop-blur-md;
+}
+
+/* 上弦/下弦月样式 */
+.quarter-moon-indicator {
+  @apply absolute;
+  @apply top-1;
+  @apply right-1;
+  @apply w-3;
+  @apply h-3;
+  @apply opacity-70;
+}
+```
+
+### 2. 塔罗记录展示
+
+```css
+.tarot-record {
+  @apply bg-purple-600/20;
+  @apply mt-2;
+  @apply p-2;
+  @apply rounded-md;
+  @apply flex;
+  @apply items-center;
+  @apply gap-2;
+}
+
+.tarot-icon {
+  @apply w-4;
+  @apply h-4;
+  @apply text-purple-400;
+}
+```
+
+### 3. 下拉详情面板
+
+```css
+.detail-panel {
+  @apply fixed;
+  @apply bottom-0;
+  @apply left-0;
+  @apply right-0;
+  @apply bg-background/95;
+  @apply backdrop-blur-xl;
+  @apply rounded-t-xl;
+  @apply shadow-2xl;
+  @apply transition-transform;
+  @apply duration-300;
+}
+
+.panel-grid {
+  @apply grid;
+  @apply grid-cols-1;
+  @apply md:grid-cols-2;
+  @apply gap-6;
+  @apply p-6;
+}
+
+.project-details {
+  @apply space-y-4;
+}
+
+.tarot-details {
+  @apply space-y-4;
+  @apply border-l;
+  @apply border-border/20;
+  @apply pl-6;
+}
+```
+
+### 4. 交互规范
+
+#### 月历导航
+```css
+.calendar-nav {
+  @apply flex;
+  @apply items-center;
+  @apply justify-between;
+  @apply px-4;
+  @apply py-2;
+}
+
+.month-switcher {
+  @apply flex;
+  @apply items-center;
+  @apply gap-4;
+}
+
+.today-button {
+  @apply button-outline;
+  @apply text-sm;
+}
+```
+
+#### 手势操作
+```typescript
+interface GestureConfig {
+  // 下拉展开阈值
+  pullThreshold: 100,
+  // 双指缩放比例
+  zoomScale: {
+    min: 0.8,
+    max: 1.2
+  },
+  // 长按触发时间
+  longPressDelay: 500
+}
+```
+
+#### 响应式布局
+```css
+/* 移动端 */
+@media (max-width: 768px) {
+  .detail-panel {
+    @apply h-[80vh];
+  }
+  
+  .panel-grid {
+    @apply grid-cols-1;
+  }
+}
+
+/* 平板/桌面 */
+@media (min-width: 769px) {
+  .detail-panel {
+    @apply h-[50vh];
+  }
+  
+  .panel-grid {
+    @apply grid-cols-2;
+  }
+}
+```
+
+### 5. 视觉风格
+
+#### 配色系统扩展
+```css
+:root {
+  /* 月相标识色 */
+  --new-moon: hsla(220, 25%, 96%, 0.1);
+  --full-moon: hsla(220, 25%, 96%, 0.3);
+  --quarter-moon: hsla(220, 25%, 96%, 0.2);
+  
+  /* 塔罗记录色 */
+  --tarot-purple: hsla(270, 50%, 65%, 0.2);
+  --tarot-accent: hsla(270, 50%, 65%, 0.8);
+}
+```
+
+#### 动效规范
+```css
+.calendar-transitions {
+  /* 月份切换 */
+  --month-transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 面板展开 */
+  --panel-transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 卡片悬停 */
+  --card-hover: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* 月相旋转 */
+  --phase-rotation: rotate 10s linear infinite;
+}
+```
+
+这个迭代设计方案注重：
+1. 清晰的信息层级
+2. 优雅的视觉呈现
+3. 流畅的交互体验
+4. 合理的响应式适配
+5. 与现有设计系统的无缝集成
+
+移除了时间线和能量系统，使界面更专注于核心功能的展示，同时保持了良好的可扩展性，为未来功能迭代预留了设计空间。 
+
+## 首页设计优化 (Homepage Design Optimization)
+
+### 1. 页面结构
+
+```css
+/* 主页容器 */
+.home-container {
+  @apply min-h-screen;
+  @apply bg-gradient-radial;
+  @apply from-background/20;
+  @apply via-background/10;
+  @apply to-background/5;
+  @apply overflow-x-hidden;
+}
+
+/* 顶部导航区 */
+.top-nav {
+  @apply sticky;
+  @apply top-0;
+  @apply z-50;
+  @apply backdrop-blur-lg;
+  @apply bg-background/30;
+  @apply border-b;
+  @apply border-border/10;
+}
+
+.nav-content {
+  @apply max-w-7xl;
+  @apply mx-auto;
+  @apply px-4;
+  @apply h-16;
+  @apply flex;
+  @apply items-center;
+  @apply justify-between;
+}
+
+/* 主要内容区 */
+.main-content {
+  @apply max-w-7xl;
+  @apply mx-auto;
+  @apply px-4;
+  @apply py-6;
+  @apply space-y-8;
+}
+```
+
+### 2. 顶部信息栏
+
+```css
+/* 月相信息条 */
+.moon-phase-bar {
+  @apply flex;
+  @apply items-center;
+  @apply justify-between;
+  @apply mb-6;
+  @apply px-4;
+  @apply py-3;
+  @apply rounded-lg;
+  @apply bg-background/20;
+  @apply backdrop-blur-md;
+  @apply border;
+  @apply border-border/10;
+}
+
+/* 当前月相展示 */
+.current-phase {
+  @apply flex;
+  @apply items-center;
+  @apply gap-3;
+}
+
+.phase-icon {
+  @apply w-8;
+  @apply h-8;
+  @apply opacity-90;
+}
+
+.phase-info {
+  @apply flex;
+  @apply flex-col;
+}
+
+.phase-name {
+  @apply text-lg;
+  @apply font-light;
+  @apply text-foreground/90;
+}
+
+.phase-date {
+  @apply text-sm;
+  @apply text-foreground/60;
+}
+
+/* 月相切换器 */
+.phase-navigation {
+  @apply flex;
+  @apply items-center;
+  @apply gap-4;
+}
+
+.nav-button {
+  @apply p-2;
+  @apply rounded-full;
+  @apply bg-background/30;
+  @apply hover:bg-background/40;
+  @apply transition-colors;
+  @apply duration-200;
+}
+```
+
+### 3. 快捷操作栏
+
+```css
+/* 操作按钮组 */
+.action-bar {
+  @apply flex;
+  @apply items-center;
+  @apply gap-4;
+  @apply mb-6;
+}
+
+/* 主要操作按钮 */
+.primary-action {
+  @apply flex;
+  @apply items-center;
+  @apply gap-2;
+  @apply px-4;
+  @apply py-2;
+  @apply rounded-lg;
+  @apply bg-foreground/10;
+  @apply hover:bg-foreground/15;
+  @apply transition-all;
+  @apply duration-200;
+  @apply backdrop-blur-sm;
+}
+
+/* 次要操作按钮 */
+.secondary-action {
+  @apply flex;
+  @apply items-center;
+  @apply gap-2;
+  @apply px-3;
+  @apply py-2;
+  @apply rounded-lg;
+  @apply border;
+  @apply border-border/10;
+  @apply hover:bg-background/20;
+  @apply transition-all;
+  @apply duration-200;
+}
+
+/* 图标按钮 */
+.icon-button {
+  @apply p-2;
+  @apply rounded-full;
+  @apply hover:bg-background/20;
+  @apply transition-colors;
+  @apply duration-200;
+}
+```
+
+### 4. 下拉详情面板优化
+
+```css
+/* 面板容器 */
+.details-panel {
+  @apply fixed;
+  @apply inset-x-0;
+  @apply bottom-0;
+  @apply z-40;
+  @apply bg-background/80;
+  @apply backdrop-blur-xl;
+  @apply rounded-t-2xl;
+  @apply border-t;
+  @apply border-border/10;
+  @apply shadow-2xl;
+  @apply transition-all;
+  @apply duration-300;
+  @apply ease-in-out;
+  @apply transform;
+}
+
+/* 面板拖动条 */
+.drag-handle {
+  @apply w-12;
+  @apply h-1;
+  @apply mx-auto;
+  @apply mt-3;
+  @apply mb-4;
+  @apply rounded-full;
+  @apply bg-foreground/20;
+}
+
+/* 面板内容 */
+.panel-content {
+  @apply max-w-7xl;
+  @apply mx-auto;
+  @apply px-4;
+  @apply pb-8;
+  @apply grid;
+  @apply grid-cols-1;
+  @apply md:grid-cols-2;
+  @apply gap-8;
+}
+
+/* 面板标题 */
+.panel-section-title {
+  @apply text-lg;
+  @apply font-light;
+  @apply mb-4;
+  @apply flex;
+  @apply items-center;
+  @apply justify-between;
+}
+```
+
+### 5. 响应式优化
+
+```css
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .moon-phase-bar {
+    @apply flex-col;
+    @apply items-start;
+    @apply gap-3;
+  }
+
+  .action-bar {
+    @apply grid;
+    @apply grid-cols-2;
+    @apply gap-2;
+  }
+
+  .primary-action {
+    @apply col-span-2;
+  }
+}
+
+/* 平板适配 */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .action-bar {
+    @apply flex-wrap;
+  }
+}
+
+/* 大屏适配 */
+@media (min-width: 1025px) {
+  .main-content {
+    @apply py-8;
+  }
+
+  .details-panel {
+    @apply max-h-[70vh];
+  }
+}
+```
+
+### 6. 动效与交互
+
+```css
+/* 页面过渡效果 */
+.page-transitions {
+  /* 页面载入 */
+  --page-enter: opacity-0 transform scale-95;
+  --page-enter-active: opacity-100 transform scale-100;
+  @apply transition-all;
+  @apply duration-500;
+  @apply ease-out;
+
+  /* 面板滑动 */
+  --panel-slide: transform translateY(100%);
+  --panel-slide-active: transform translateY(0);
+  @apply transition-transform;
+  @apply duration-300;
+  @apply ease-in-out;
+}
+
+/* 内容淡入效果 */
+.content-fade {
+  @apply animate-in;
+  @apply fade-in;
+  @apply duration-300;
+  @apply ease-out;
+}
+
+/* 交互反馈 */
+.interaction-feedback {
+  /* 点击波纹 */
+  --ripple-color: rgb(255 255 255 / 0.1);
+  --ripple-duration: 600ms;
+  
+  /* 悬停提示 */
+  --tooltip-bg: rgb(0 0 0 / 0.8);
+  --tooltip-color: rgb(255 255 255 / 0.9);
+}
+```
+
+### 7. 主题与氛围
+
+```css
+/* 背景装饰 */
+.background-decoration {
+  @apply fixed;
+  @apply inset-0;
+  @apply pointer-events-none;
+  @apply z-0;
+}
+
+.star-field {
+  @apply absolute;
+  @apply inset-0;
+  @apply opacity-30;
+  @apply mix-blend-screen;
+}
+
+.ambient-gradient {
+  @apply absolute;
+  @apply inset-0;
+  @apply bg-gradient-to-br;
+  @apply from-purple-500/5;
+  @apply via-transparent;
+  @apply to-blue-500/5;
+}
+
+/* 月光效果 */
+.moonlight-effect {
+  @apply absolute;
+  @apply w-[200%];
+  @apply h-[200%];
+  @apply bg-radial;
+  @apply from-foreground/5;
+  @apply to-transparent;
+  @apply blur-2xl;
+  @apply animate-pulse;
+  @apply duration-[10000ms];
+}
+```
+
+这个优化设计方案：
+
+1. **结构优化**
+- 清晰的页面层级
+- 响应式布局支持
+- 模块化的组件结构
+
+2. **视觉提升**
+- 渐变背景效果
+- 玻璃拟态设计
+- 动态光效处理
+
+3. **交互体验**
+- 流畅的动画过渡
+- 直观的操作反馈
+- 优雅的手势支持
+
+4. **性能考虑**
+- 优化的动画性能
+- 合理的模糊效果
+- 响应式图片处理
+
+5. **可访问性**
+- 清晰的视觉层级
+- 合适的对比度
+- 友好的键盘操作
+
+这个设计既保持了原有的月光美学风格，又在实用性和性能上做了优化，为用户提供更好的使用体验。需要我对某个具体部分做更详细的解释吗？ 
