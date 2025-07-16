@@ -5,8 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // 添加base路径配置
-  base: mode === 'production' ? '/lunar-growth-planner/' : '/',
+  // 根据部署平台智能设置base路径
+  base: process.env.VERCEL ? '/' : (mode === 'production' ? '/lunar-growth-planner/' : '/'),
   server: {
     host: "::",
     port: 8080,
@@ -19,6 +19,17 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  // 添加构建优化
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/app', 'firebase/firestore'],
+        },
+      },
     },
   },
 }));

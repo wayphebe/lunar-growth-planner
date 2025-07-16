@@ -8,7 +8,15 @@ import ClientManagement from "./pages/ClientManagement";
 import ClientTarotReading from "./pages/ClientTarotReading";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// 优化QueryClient配置
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -20,7 +28,6 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/clients" element={<ClientManagement />} />
           <Route path="/tarot-reading/:shareId" element={<ClientTarotReading />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </HashRouter>
