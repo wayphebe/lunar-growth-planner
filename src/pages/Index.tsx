@@ -13,6 +13,7 @@ import { useMoonPhase } from '@/hooks/useMoonPhase';
 import { TarotRecord } from '@/lib/types';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import NetworkStatus from '@/components/NetworkStatus';
 
 const Index: React.FC = () => {
   const { currentPhase } = useMoonPhase();
@@ -38,6 +39,9 @@ const Index: React.FC = () => {
     <div className="min-h-screen bg-white/90">
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Network Status */}
+        <NetworkStatus />
+        
         {/* Moon Phase Bar */}
         <div className="bg-white/50 rounded-lg border border-gray-200 p-4">
           <MoonPhaseDisplay />

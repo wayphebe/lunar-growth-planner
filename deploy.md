@@ -1,342 +1,235 @@
-# 月相成长规划师应用 - 部署指南与调试总结
+# 部署配置和操作指南
 
-## 📋 项目概述
+## 部署平台
 
-月相成长规划师是一个基于React + TypeScript + Firebase的塔罗占卜应用，支持专业占卜师为客户提供塔罗解读服务，并具备分享链接功能。
+### 1. Vercel 部署
+- **访问地址**: https://lunar-growth-planner-xxx.vercel.app
+- **配置**: 使用环境变量配置 Firebase
+- **路由**: 使用 BrowserRouter
 
-## 🏗️ 技术栈
+### 2. GitHub Pages 部署
+- **访问地址**: https://wayphebe.github.io/lunar-growth-planner
+- **配置**: 使用 GitHub Actions 自动部署
+- **路由**: 使用 HashRouter
 
-- **前端**: React 18 + TypeScript + Vite
-- **UI组件**: shadcn/ui + Tailwind CSS
-- **后端**: Firebase Firestore
-- **认证**: Firebase Authentication
-- **部署**: Vercel/Netlify (推荐)
+## 环境变量配置
 
-## 🚀 部署方案
-
-### 1. 环境准备
-
-```bash
-# 确保Node.js版本 >= 18
-node --version
-
-# 安装依赖
-npm install
-# 或
-bun install
+### Vercel 环境变量
+在 Vercel 项目设置中添加以下环境变量：
 ```
-
-### 2. Firebase配置
-
-#### 2.1 创建Firebase项目
-1. 访问 [Firebase Console](https://console.firebase.google.com/)
-2. 创建新项目
-3. 启用Firestore数据库
-4. 配置安全规则
-
-#### 2.2 Firestore安全规则
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // 允许读取所有集合
-    match /{document=**} {
-      allow read: if true;
-    }
-    
-    // 允许写入所有集合（生产环境建议添加认证）
-    match /{document=**} {
-      allow write: if true;
-    }
-  }
-}
-```
-
-#### 2.3 环境变量配置
-创建 `.env.local` 文件：
-```env
 VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
 VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-### 3. 本地开发
-
-```bash
-# 启动开发服务器
-npm run dev
-# 或
-bun dev
-
-# 访问 http://localhost:5173
+### GitHub Secrets
+在 GitHub 仓库 Settings > Secrets and variables > Actions 中添加：
+```
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
 ```
 
-### 4. 生产部署
+## 配置文件
 
-#### 4.1 Vercel部署（推荐）
-1. 连接GitHub仓库到Vercel
-2. 配置环境变量
-3. 自动部署
+### vite.config.ts
+```typescript
+export default defineConfig(({ mode }) => ({
+  // 根据部署平台智能设置base路径
+  base: process.env.VERCEL ? '/' : (mode === 'production' ? '/lunar-growth-planner/' : '/'),
+  server: {
+    host: "::",
+    port: 5173,
+  },
+  // 添加构建优化
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/app', 'firebase/firestore'],
+        },
+      },
+    },
+  },
+}));
+```
 
-#### 4.2 Netlify部署
-1. 连接GitHub仓库到Netlify
-2. 构建命令: `npm run build`
-3. 发布目录: `dist`
-4. 配置环境变量
+### App.tsx 路由配置
+```typescript
+// 优化QueryClient配置
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-#### 4.3 手动部署
+// 根据部署平台选择路由类型
+const Router = process.env.VERCEL ? BrowserRouter : HashRouter;
+
+<Router>
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/clients" element={<ClientManagement />} />
+    <Route path="/tarot-reading/:shareId" element={<ClientTarotReading />} />
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+</Router>
+```
+
+### vercel.json 配置
+```json
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+## GitHub Actions 工作流
+
+### .github/workflows/deploy.yml
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build
+      run: npm run build
+      env:
+        VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+        VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+        VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      
+    - name: Output deployment URL
+      run: echo "Deployed to ${{ steps.deployment.outputs.page_url }}"
+```
+
+## 部署操作流程
+
+### 自动部署（推荐）
+1. 使用 GitHub Desktop 推送代码到 `main` 分支
+2. GitHub Actions 自动检测推送并运行部署流程
+3. 在 GitHub 仓库的 "Actions" 标签页查看部署进度
+4. 部署完成后访问 GitHub Pages 地址
+
+### 手动部署（如需要）
 ```bash
-# 构建生产版本
+# 本地构建
 npm run build
 
-# 部署到静态服务器
-# 将dist目录内容上传到服务器
+# 推送到 GitHub
+git add .
+git commit -m "Update deployment"
+git push origin main
 ```
 
-## 🔧 核心功能架构
+## 常见问题解决
 
-### 1. 数据模型
+### 1. 404 错误
+- **原因**: GitHub Pages 不支持 BrowserRouter
+- **解决**: 使用 HashRouter 进行路由
 
-#### ShareLink (分享链接)
-```typescript
-interface ShareLink {
-  id: string;
-  tarotRecordId: string;
-  clientId: string;
-  url: string;
-  accessCode: string;
-  views: number;
-  lastViewed?: Date;
-  isActive: boolean;
-  expiresAt?: Date;
-  createdAt: Date;
-}
-```
+### 2. 资源加载错误
+- **原因**: base 路径配置不正确
+- **解决**: 根据部署平台设置正确的 base 路径
 
-#### ProfessionalTarotRecord (专业塔罗记录)
-```typescript
-interface ProfessionalTarotRecord {
-  id: string;
-  clientId: string;
-  isForClient: boolean;
-  date: Date;
-  moonPhase: string;
-  question: string;
-  cards: TarotCard[];
-  interpretation: string;
-  advice: string;
-  nextSteps: string;
-  consultationFee: number;
-  presentation: PresentationSettings;
-  shareSettings: ShareSettings;
-}
-```
+### 3. Firebase 连接错误
+- **原因**: 中国网络限制导致无法访问 Google 服务器
+- **解决**: 
+  - 使用 VPN 访问
+  - 部署到国内服务器/CDN
+  - 应用已添加网络状态检测和重试机制
+  - 显示友好的错误提示和重试按钮
 
-#### Client (客户)
-```typescript
-interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  notes?: string;
-  isActive: boolean;
-  totalConsultations: number;
-  lastConsultation?: Date;
-  createdAt: Date;
-}
-```
+### 4. 环境变量未生效
+- **检查**: 确保在正确的平台设置了环境变量
+- **验证**: 检查构建日志中的环境变量是否正确传递
 
-### 2. 核心Hooks
+## 部署状态检查
 
-#### useShareLinks
-- 管理分享链接的CRUD操作
-- 实时同步Firebase数据
-- 提供访问码查找功能
+### GitHub Actions 状态
+- 访问仓库的 "Actions" 标签页
+- 查看最新的 workflow 运行状态
+- 检查构建和部署日志
 
-#### useProfessionalTarotRecords
-- 管理专业塔罗记录
-- 支持客户端和内部记录
-- 实时数据同步
+### 网站访问测试
+- Vercel: https://lunar-growth-planner-xxx.vercel.app
+- GitHub Pages: https://wayphebe.github.io/lunar-growth-planner
+- 测试分享链接功能
+- 验证 Firebase 数据同步
 
-#### useClients
-- 客户信息管理
-- 咨询统计跟踪
-- 实时数据更新
+## 更新记录
 
-## 🐛 调试过程总结
+### 2024-12-19
+- 配置双平台部署（Vercel + GitHub Pages）
+- 优化路由配置，根据平台选择 BrowserRouter 或 HashRouter
+- 添加环境变量配置
+- 设置 GitHub Actions 自动部署
+- 解决 404 错误和资源加载问题
+- 添加构建优化配置
+- 修复 Vercel 分享链接跳转到首页的问题
+- 添加 Firebase 连接状态检测和错误处理
+- 创建网络状态提示组件，提供友好的错误信息和重试功能
 
-### 问题描述
-分享链接功能在页面刷新后无法正常工作，显示"Access Denied"错误。
+## 注意事项
 
-### 调试步骤
-
-#### 1. 初步诊断
-- 确认Firebase数据存在
-- 验证访问码匹配
-- 检查网络请求状态
-
-#### 2. 发现根本问题
-通过添加调试日志发现：
-```javascript
-// 问题：React状态为空，但Firebase数据已加载
-🔍 getShareLinkByAccessCode: 当前shareLinks状态: []
-🔍 useShareLinks: onSnapshot回调执行，数据数量: 4
-```
-
-#### 3. 识别竞态条件
-问题根源：React组件在Firebase数据加载完成之前就开始查询数据，导致状态为空。
-
-#### 4. 解决方案实现
-
-##### 4.1 添加数据加载状态监听
-```typescript
-const [dataLoaded, setDataLoaded] = useState(false);
-
-useEffect(() => {
-  // 当所有hooks都有数据时，标记为已加载
-  if (shareLinks.length > 0 && professionalTarotRecords.length > 0 && clients.length > 0) {
-    setDataLoaded(true);
-  }
-}, [shareLinks.length, professionalTarotRecords.length, clients.length]);
-```
-
-##### 4.2 改进组件逻辑
-```typescript
-// 当数据加载完成且shareId存在时，开始查找分享链接
-useEffect(() => {
-  if (dataLoaded && shareId) {
-    loadTarotReading();
-  }
-}, [dataLoaded, shareId]);
-```
-
-##### 4.3 简化数据查找逻辑
-移除重试机制，因为现在数据加载是可靠的：
-```typescript
-const loadTarotReading = async () => {
-  // 直接查找，无需重试
-  const link = getShareLinkByAccessCode(shareId!);
-  if (!link) {
-    setError('分享链接不存在或已失效');
-    return;
-  }
-  // ... 其他逻辑
-};
-```
-
-### 调试工具和技术
-
-#### 1. 调试日志
-```javascript
-console.log('🔍 调试信息:', data);
-```
-
-#### 2. React DevTools
-- 检查组件状态
-- 监控hooks执行
-- 验证数据流
-
-#### 3. Firebase Console
-- 实时查看数据
-- 监控网络请求
-- 验证安全规则
-
-#### 4. 浏览器开发者工具
-- Network面板监控请求
-- Console查看日志
-- Application面板检查存储
-
-### 关键学习点
-
-1. **React状态更新时机**：onSnapshot回调执行 ≠ 组件重新渲染
-2. **竞态条件处理**：确保数据加载完成后再执行依赖操作
-3. **调试策略**：从数据流开始，逐步定位问题
-4. **代码简化**：移除不必要的重试逻辑，提高可维护性
-
-## 📊 性能优化建议
-
-### 1. 数据加载优化
-- 实现数据分页
-- 添加加载状态指示器
-- 优化查询性能
-
-### 2. 缓存策略
-- 实现客户端缓存
-- 使用React Query优化数据获取
-- 添加离线支持
-
-### 3. 用户体验
-- 添加骨架屏
-- 实现渐进式加载
-- 优化移动端体验
-
-## 🔒 安全考虑
-
-### 1. 生产环境安全规则
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // 分享链接：允许公开读取，限制写入
-    match /shareLinks/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // 塔罗记录：需要认证
-    match /professionalTarotRecords/{document} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // 客户信息：需要认证
-    match /clients/{document} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-### 2. 数据验证
-- 客户端输入验证
-- 服务器端数据清理
-- XSS防护
-
-### 3. 访问控制
-- 实现用户认证
-- 角色权限管理
-- API访问限制
-
-## 📈 监控和维护
-
-### 1. 错误监控
-- 集成Sentry错误追踪
-- 实现错误边界
-- 日志收集和分析
-
-### 2. 性能监控
-- 页面加载时间
-- API响应时间
-- 用户交互指标
-
-### 3. 数据备份
-- 定期备份Firestore数据
-- 实现数据恢复机制
-- 监控数据完整性
-
-## 🎯 后续开发计划
-
-1. **用户认证系统**
-2. **支付集成**
-3. **移动端应用**
-4. **AI辅助解读**
-5. **多语言支持**
-6. **高级分析功能**
-
----
-
-*最后更新: 2025年1月*
-*版本: 1.0.0* 
+1. **数据共享**: 两个平台共享同一个 Firebase 数据库
+2. **路由差异**: Vercel 使用 BrowserRouter，GitHub Pages 使用 HashRouter
+3. **环境变量**: 需要在两个平台分别配置
+4. **网络限制**: 中国用户访问 Firebase 可能需要 VPN
+5. **自动部署**: 推送代码到 main 分支会自动触发部署 
