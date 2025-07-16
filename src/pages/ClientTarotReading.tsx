@@ -37,9 +37,9 @@ import { useClients } from '@/hooks/useClients';
 const ClientTarotReading: React.FC = () => {
   const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
-  const { getProfessionalTarotRecord } = useProfessionalTarotRecords();
-  const { getShareLinkByAccessCode, recordView } = useShareLinks();
-  const { getClient } = useClients();
+  const { getProfessionalTarotRecord, professionalTarotRecords } = useProfessionalTarotRecords();
+  const { getShareLinkByAccessCode, recordView, shareLinks } = useShareLinks();
+  const { getClient, clients } = useClients();
   
   const [shareLink, setShareLink] = useState<any>(null);
   const [record, setRecord] = useState<ProfessionalTarotRecord | null>(null);
@@ -51,12 +51,22 @@ const ClientTarotReading: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
+  // 监听数据加载状态
   useEffect(() => {
-    if (shareId) {
+    // 当所有hooks都有数据时，标记为已加载
+    if (shareLinks.length > 0 && professionalTarotRecords.length > 0 && clients.length > 0) {
+      setDataLoaded(true);
+    }
+  }, [shareLinks.length, professionalTarotRecords.length, clients.length]);
+
+  // 当数据加载完成且shareId存在时，开始查找分享链接
+  useEffect(() => {
+    if (dataLoaded && shareId) {
       loadTarotReading();
     }
-  }, [shareId]);
+  }, [dataLoaded, shareId]);
 
   const loadTarotReading = async () => {
     try {
@@ -95,6 +105,11 @@ const ClientTarotReading: React.FC = () => {
       
       // 获取客户信息
       const clientData = getClient(link.clientId);
+      if (!clientData) {
+        setError('客户信息不存在');
+        return;
+      }
+      
       setClient(clientData);
       
       // 设置顾问信息（暂时使用示例数据）
@@ -105,12 +120,16 @@ const ClientTarotReading: React.FC = () => {
       });
       
       // 检查是否需要密码
-      if (tarotRecord.shareSettings.password) {
+      if (tarotRecord.shareSettings?.password) {
         setIsPasswordProtected(true);
       } else {
         setIsAuthenticated(true);
         // 记录访问
-        recordView(shareId!);
+        try {
+          await recordView(shareId!);
+        } catch (error) {
+          console.error('记录访问失败:', error);
+        }
       }
       
     } catch (error) {
@@ -121,14 +140,18 @@ const ClientTarotReading: React.FC = () => {
     }
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!record || !shareLink) return;
     
     if (password === record.shareSettings.password) {
       setIsAuthenticated(true);
       setPasswordError('');
-      recordView(shareId!);
+      try {
+        await recordView(shareId!);
+      } catch (error) {
+        console.error('记录访问失败:', error);
+      }
     } else {
       setPasswordError('密码错误，请重试');
     }

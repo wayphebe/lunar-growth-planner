@@ -195,7 +195,11 @@ export const ProfessionalTarotModal: React.FC<ProfessionalTarotModalProps> = ({
 
       // 生成分享链接
       if (isPublic) {
-        generateShareLink(savedRecord.id, clientId, shareSettings);
+        try {
+          await generateShareLink(savedRecord.id, clientId, shareSettings);
+        } catch (error) {
+          console.error('生成分享链接失败:', error);
+        }
       }
 
       // 重置表单

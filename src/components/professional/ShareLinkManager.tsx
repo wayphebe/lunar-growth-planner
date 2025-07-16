@@ -115,15 +115,23 @@ export const ShareLinkManager: React.FC<ShareLinkManagerProps> = ({
     }
   };
 
-  const handleDeleteLink = (linkId: string) => {
-    deleteShareLink(linkId);
+  const handleDeleteLink = async (linkId: string) => {
+    try {
+      await deleteShareLink(linkId);
+    } catch (error) {
+      console.error('删除分享链接失败:', error);
+    }
   };
 
-  const handleToggleActive = (link: ShareLink) => {
-    if (link.isActive) {
-      deactivateShareLink(link.id);
-    } else {
-      activateShareLink(link.id);
+  const handleToggleActive = async (link: ShareLink) => {
+    try {
+      if (link.isActive) {
+        await deactivateShareLink(link.id);
+      } else {
+        await activateShareLink(link.id);
+      }
+    } catch (error) {
+      console.error('切换分享链接状态失败:', error);
     }
   };
 

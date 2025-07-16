@@ -1,60 +1,82 @@
 import { useState, useEffect } from 'react';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { cleanFirebaseData } from '@/lib/utils';
 import { ShareLink, ShareSettings } from '@/lib/types';
+
+// 生成访问码的函数
+const generateAccessCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// 安全的日期转换函数
+const safeDateConversion = (dateValue: any): Date | undefined => {
+  if (!dateValue) return undefined;
+  
+  // 如果是 Firestore Timestamp
+  if (dateValue && typeof dateValue.toDate === 'function') {
+    return dateValue.toDate();
+  }
+  
+  // 如果是 Date 对象
+  if (dateValue instanceof Date) {
+    return dateValue;
+  }
+  
+  // 如果是字符串或数字
+  if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+    return new Date(dateValue);
+  }
+  
+  return undefined;
+};
 
 export const useShareLinks = () => {
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
 
   useEffect(() => {
-    // 从本地存储加载分享链接
-    const savedLinks = localStorage.getItem('shareLinks');
-    if (savedLinks) {
-      const parsed = JSON.parse(savedLinks);
-      // 转换日期字符串回Date对象
-      const linksWithDates = parsed.map((link: any) => ({
-        ...link,
-        createdAt: new Date(link.createdAt),
-        expiresAt: link.expiresAt ? new Date(link.expiresAt) : undefined,
-        lastViewed: link.lastViewed ? new Date(link.lastViewed) : undefined
-      }));
-      setShareLinks(linksWithDates);
-    } else {
-      // 初始化示例数据
-      const sampleLinks: ShareLink[] = [
-        {
-          id: 'share-1',
-          tarotRecordId: 'prof-tarot-1',
-          clientId: 'client-1',
-          url: '/tarot-reading/ABC123',
-          accessCode: 'ABC123',
-          views: 5,
-          lastViewed: new Date('2024-01-21'),
-          isActive: true,
-          expiresAt: new Date('2024-02-20'),
-          createdAt: new Date('2024-01-20')
-        },
-        {
-          id: 'share-2',
-          tarotRecordId: 'prof-tarot-2',
-          clientId: 'client-2',
-          url: '/tarot-reading/DEF456',
-          accessCode: 'DEF456',
-          views: 3,
-          lastViewed: new Date('2024-01-26'),
-          isActive: true,
-          createdAt: new Date('2024-01-25')
-        }
-      ];
-      setShareLinks(sampleLinks);
-      localStorage.setItem('shareLinks', JSON.stringify(sampleLinks));
-    }
+    // 从 Firebase 加载分享链接
+    const unsubscribe = onSnapshot(
+      collection(db, 'shareLinks'),
+      (snapshot) => {
+        const links: ShareLink[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          links.push({
+            id: doc.id,
+            tarotRecordId: data.tarotRecordId,
+            clientId: data.clientId,
+            url: data.url,
+            accessCode: data.accessCode,
+            views: data.views || 0,
+            lastViewed: safeDateConversion(data.lastViewed),
+            isActive: data.isActive,
+            expiresAt: safeDateConversion(data.expiresAt),
+            createdAt: safeDateConversion(data.createdAt) || new Date()
+          });
+        });
+        setShareLinks(links);
+      },
+      (error) => {
+        console.error('❌ useShareLinks: 加载分享链接失败:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const generateShareLink = (tarotRecordId: string, clientId: string, settings?: ShareSettings) => {
+  const generateShareLink = async (tarotRecordId: string, clientId: string, settings?: ShareSettings) => {
     // 生成唯一的访问码
     const accessCode = generateAccessCode();
     
-    const newLink: ShareLink = {
-      id: 'share-' + Date.now().toString(),
+    const newLinkData = cleanFirebaseData({
       tarotRecordId,
       clientId,
       url: `/tarot-reading/${accessCode}`,
@@ -63,26 +85,38 @@ export const useShareLinks = () => {
       isActive: true,
       expiresAt: settings?.expiryDate,
       createdAt: new Date()
-    };
+    });
 
-    const updatedLinks = [newLink, ...shareLinks];
-    setShareLinks(updatedLinks);
-    localStorage.setItem('shareLinks', JSON.stringify(updatedLinks));
-    return newLink;
+    try {
+      const docRef = await addDoc(collection(db, 'shareLinks'), newLinkData);
+      return {
+        id: docRef.id,
+        ...newLinkData
+      };
+    } catch (error) {
+      console.error('生成分享链接失败:', error);
+      throw error;
+    }
   };
 
-  const updateShareLink = (id: string, updates: Partial<ShareLink>) => {
-    const updatedLinks = shareLinks.map(link =>
-      link.id === id ? { ...link, ...updates } : link
-    );
-    setShareLinks(updatedLinks);
-    localStorage.setItem('shareLinks', JSON.stringify(updatedLinks));
+  const updateShareLink = async (id: string, updates: Partial<ShareLink>) => {
+    try {
+      const docRef = doc(db, 'shareLinks', id);
+      await updateDoc(docRef, updates);
+    } catch (error) {
+      console.error('更新分享链接失败:', error);
+      throw error;
+    }
   };
 
-  const deleteShareLink = (id: string) => {
-    const updatedLinks = shareLinks.filter(link => link.id !== id);
-    setShareLinks(updatedLinks);
-    localStorage.setItem('shareLinks', JSON.stringify(updatedLinks));
+  const deleteShareLink = async (id: string) => {
+    try {
+      const docRef = doc(db, 'shareLinks', id);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('删除分享链接失败:', error);
+      throw error;
+    }
   };
 
   const getShareLink = (id: string) => {
@@ -90,7 +124,8 @@ export const useShareLinks = () => {
   };
 
   const getShareLinkByAccessCode = (accessCode: string) => {
-    return shareLinks.find(link => link.accessCode === accessCode && link.isActive);
+    const found = shareLinks.find(link => link.accessCode === accessCode && link.isActive);
+    return found;
   };
 
   const getShareLinksByRecord = (tarotRecordId: string) => {
@@ -101,22 +136,34 @@ export const useShareLinks = () => {
     return shareLinks.filter(link => link.clientId === clientId);
   };
 
-  const recordView = (accessCode: string) => {
+  const recordView = async (accessCode: string) => {
     const link = getShareLinkByAccessCode(accessCode);
     if (link) {
-      updateShareLink(link.id, {
-        views: link.views + 1,
-        lastViewed: new Date()
-      });
+      try {
+        await updateShareLink(link.id, {
+          views: link.views + 1,
+          lastViewed: new Date()
+        });
+      } catch (error) {
+        console.error('记录访问失败:', error);
+      }
     }
   };
 
-  const deactivateShareLink = (id: string) => {
-    updateShareLink(id, { isActive: false });
+  const deactivateShareLink = async (id: string) => {
+    try {
+      await updateShareLink(id, { isActive: false });
+    } catch (error) {
+      console.error('停用分享链接失败:', error);
+    }
   };
 
-  const activateShareLink = (id: string) => {
-    updateShareLink(id, { isActive: true });
+  const activateShareLink = async (id: string) => {
+    try {
+      await updateShareLink(id, { isActive: true });
+    } catch (error) {
+      console.error('启用分享链接失败:', error);
+    }
   };
 
   const isShareLinkExpired = (link: ShareLink) => {
@@ -143,14 +190,4 @@ export const useShareLinks = () => {
     isShareLinkExpired,
     getActiveShareLinks
   };
-};
-
-// 生成访问码的辅助函数
-const generateAccessCode = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
 }; 

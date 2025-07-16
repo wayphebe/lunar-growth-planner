@@ -72,7 +72,7 @@ export const ShareLinkGenerator: React.FC<ShareLinkGeneratorProps> = ({
         includeNextSteps: record.presentation.includeNextSteps
       };
 
-      const newLink = generateShareLink(record.id, record.clientId, settings);
+      const newLink = await generateShareLink(record.id, record.clientId, settings);
       
       if (onLinkGenerated) {
         onLinkGenerated(newLink);

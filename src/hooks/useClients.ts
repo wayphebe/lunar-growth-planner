@@ -1,99 +1,122 @@
 import { useState, useEffect } from 'react';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { cleanFirebaseData } from '@/lib/utils';
 import { ClientProfile } from '@/lib/types';
+
+// 安全的日期转换函数
+const safeDateConversion = (dateValue: any): Date | undefined => {
+  if (!dateValue) return undefined;
+  
+  // 如果是 Firestore Timestamp
+  if (dateValue && typeof dateValue.toDate === 'function') {
+    return dateValue.toDate();
+  }
+  
+  // 如果是 Date 对象
+  if (dateValue instanceof Date) {
+    return dateValue;
+  }
+  
+  // 如果是字符串或数字
+  if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+    return new Date(dateValue);
+  }
+  
+  return undefined;
+};
 
 export const useClients = () => {
   const [clients, setClients] = useState<ClientProfile[]>([]);
 
   useEffect(() => {
-    // 从本地存储加载客户数据
-    const savedClients = localStorage.getItem('clients');
-    if (savedClients) {
-      const parsed = JSON.parse(savedClients);
-      // 转换日期字符串回Date对象
-      const clientsWithDates = parsed.map((client: any) => ({
-        ...client,
-        createdAt: new Date(client.createdAt),
-        lastConsultation: client.lastConsultation ? new Date(client.lastConsultation) : undefined
-      }));
-      setClients(clientsWithDates);
-    } else {
-      // 初始化示例数据
-      const sampleClients: ClientProfile[] = [
-        {
-          id: 'client-1',
-          name: '张小雨',
-          email: 'zhangxiaoyu@example.com',
-          phone: '13800138001',
-          notes: '对塔罗牌很感兴趣，经常询问关于事业发展的问题。',
-          createdAt: new Date('2024-01-15'),
-          lastConsultation: new Date('2024-01-20'),
-          totalConsultations: 3,
-          isActive: true
-        },
-        {
-          id: 'client-2',
-          name: '李晓明',
-          email: 'lixiaoming@example.com',
-          notes: '关注感情和人际关系方面的问题，希望通过塔罗获得指导。',
-          createdAt: new Date('2024-01-18'),
-          lastConsultation: new Date('2024-01-25'),
-          totalConsultations: 2,
-          isActive: true
-        },
-        {
-          id: 'client-3',
-          name: '王美美',
-          phone: '13900139002',
-          notes: '新客户，对塔罗占卜很好奇，主要关心学业和未来规划。',
-          createdAt: new Date('2024-01-22'),
-          totalConsultations: 1,
-          isActive: true
-        }
-      ];
-      setClients(sampleClients);
-      localStorage.setItem('clients', JSON.stringify(sampleClients));
-    }
+    // 从 Firebase 加载客户数据
+    const unsubscribe = onSnapshot(
+      collection(db, 'clients'),
+      (snapshot) => {
+        const clientsData: ClientProfile[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          clientsData.push({
+            id: doc.id,
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            notes: data.notes,
+            createdAt: safeDateConversion(data.createdAt) || new Date(),
+            lastConsultation: safeDateConversion(data.lastConsultation),
+            totalConsultations: data.totalConsultations || 0,
+            isActive: data.isActive !== false
+          });
+        });
+        setClients(clientsData);
+      },
+      (error) => {
+        console.error('❌ useClients: 加载客户数据失败:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const addClient = (client: Omit<ClientProfile, 'id' | 'createdAt' | 'totalConsultations' | 'isActive'>) => {
-    const newClient: ClientProfile = {
+  const addClient = async (client: Omit<ClientProfile, 'id' | 'createdAt' | 'totalConsultations' | 'isActive'>) => {
+    const clientData = cleanFirebaseData({
       ...client,
-      id: 'client-' + Date.now().toString(),
       createdAt: new Date(),
       totalConsultations: 0,
       isActive: true
-    };
-    const updatedClients = [newClient, ...clients];
-    setClients(updatedClients);
-    localStorage.setItem('clients', JSON.stringify(updatedClients));
-    return newClient;
+    });
+
+    try {
+      const docRef = await addDoc(collection(db, 'clients'), clientData);
+      return {
+        id: docRef.id,
+        ...clientData
+      };
+    } catch (error) {
+      console.error('添加客户失败:', error);
+      throw error;
+    }
   };
 
-  const updateClient = (id: string, updates: Partial<ClientProfile>) => {
-    const updatedClients = clients.map(client =>
-      client.id === id ? { ...client, ...updates } : client
-    );
-    setClients(updatedClients);
-    localStorage.setItem('clients', JSON.stringify(updatedClients));
+  const updateClient = async (id: string, updates: Partial<ClientProfile>) => {
+    try {
+      const docRef = doc(db, 'clients', id);
+      await updateDoc(docRef, updates);
+    } catch (error) {
+      console.error('更新客户失败:', error);
+      throw error;
+    }
   };
 
-  const deleteClient = (id: string) => {
-    const updatedClients = clients.filter(client => client.id !== id);
-    setClients(updatedClients);
-    localStorage.setItem('clients', JSON.stringify(updatedClients));
+  const deleteClient = async (id: string) => {
+    try {
+      const docRef = doc(db, 'clients', id);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('删除客户失败:', error);
+      throw error;
+    }
   };
 
   const getClient = (id: string) => {
-    return clients.find(client => client.id === id);
+    const found = clients.find(client => client.id === id);
+    return found;
   };
 
-  const updateClientConsultation = (id: string) => {
+  const updateClientConsultation = async (id: string) => {
     const client = clients.find(c => c.id === id);
     if (client) {
-      updateClient(id, {
-        lastConsultation: new Date(),
-        totalConsultations: client.totalConsultations + 1
-      });
+      try {
+        await updateClient(id, {
+          lastConsultation: new Date(),
+          totalConsultations: client.totalConsultations + 1
+        });
+      } catch (error) {
+        console.error('更新客户咨询次数失败:', error);
+      }
     }
   };
 
