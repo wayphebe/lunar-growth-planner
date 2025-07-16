@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // 添加base路径配置
+  base: mode === 'production' ? '/lunar-growth-planner/' : '/',
   server: {
     host: "::",
     port: 8080,
